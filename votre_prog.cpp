@@ -1,49 +1,51 @@
+// to start the program type : g++ votre_prog.cpp labIO.cpp -o votre_prog -lncurses
+// and type ./votre_prog
+
 #include <ncurses.h>
 #include "labIO.h"
 #include<iostream>
 #include<fstream>
 #include <cstdlib>
-#include<unistd.h> // librairie permettant d'utiliser la fonction sleep necessaire a l'affichage progressif de la recherche du chemin parfait du labyrinthe
-#include <stdio.h>
+#include<unistd.h>
 
 using namespace std;
 
 void init(Case & c)
 {
-	c.N=c.S=c.E=c.W=false;
-	c.etat=false;
+    c.N=c.S=c.E=c.W=false;
+    c.etat=false;
 }
 
 void init(laby & L, int p, int q)
 {
-	L.p=p; L.q=q;
-	L.tab=new Case *[p];
-	for(int i=0;i<p;i++) L.tab[i]=new Case[q];
-	for(int i=0;i<p;i++)
-	{
-		for(int j=0;j<q;j++) init(L.tab[i][j]);
-	}
+    L.p=p; L.q=q;
+    L.tab=new Case *[p];
+    for(int i=0;i<p;i++) L.tab[i]=new Case[q];
+    for(int i=0;i<p;i++)
+    {
+        for(int j=0;j<q;j++) init(L.tab[i][j]);
+    }
 }
 
 laby *lire_Laby(const char  *filename)
 {
-	ifstream my_cin;
+    ifstream my_cin;
 
-	my_cin.open(filename);
+    my_cin.open(filename);
 
-	laby *L;
-	L=new laby;
-	my_cin>>(*L).p>>(*L).q;
-	init((*L),(*L).p,(*L).q);
+    laby *L;
+    L=new laby;
+    my_cin>>(*L).p>>(*L).q;
+    init((*L),(*L).p,(*L).q);
 
-	for(int i=0;i<(*L).p;i++)
-	{
-		for(int j=0;j<(*L).q;j++)
-		{
-			my_cin>>(*L).tab[i][j].W>>(*L).tab[i][j].N>>(*L).tab[i][j].S>>(*L).tab[i][j].E;
-		}
-	}
-	return L;
+    for(int i=0;i<(*L).p;i++)
+    {
+        for(int j=0;j<(*L).q;j++)
+        {
+            my_cin>>(*L).tab[i][j].W>>(*L).tab[i][j].N>>(*L).tab[i][j].S>>(*L).tab[i][j].E;
+        }
+    }
+    return L;
 }
 //____________________________________II.2______________________________________//
 void ecrire_Laby(laby & L,const char *fn){
@@ -59,7 +61,7 @@ void ecrire_Laby(laby & L,const char *fn){
     }
 }
 //____________________________________III______________________________________//
-void deplacement(laby & L, bool *abandon){
+void deplacement(laby & L, bool &abandon){
     int i = 0;
     int j = 0;
     bool game = true; // booléen permettant de savoir si la partie est toujours en cours
@@ -70,7 +72,7 @@ void deplacement(laby & L, bool *abandon){
                     UMark_Case(i,j);
                     j--;
                     Mark_Case(i,j);
-            }// gauche
+                }// gauche
                 break;
             case 3 : if (L.tab[i][j].E){ // on enléve la marque précédente puis on marque la case a droite
                     UMark_Case(i,j);
@@ -92,7 +94,7 @@ void deplacement(laby & L, bool *abandon){
                 break;
             case -1 : // F1 = abandon
                 clear();
-                *abandon = true;
+                abandon = true;
                 game = false;
                 break;
             default: // cas ou une autre touche est pressé : on clear le laby et on affiche un message de fin de jeu
@@ -159,7 +161,7 @@ bool vide(pile & P)
 }
 //***************************************//
 
-bool adjacent_visite (laby &L, couple C){ //fonction qui renvoie true si toute les case adjacentes sont visités
+bool adjacent_visite (laby L, couple C){ //fonction qui renvoie true si toute les case adjacentes sont visités
     for (int i = 1; i <=4; i++){
         switch (i){
             case 1 : if (C.i > 0) {
@@ -244,7 +246,7 @@ laby * My_Creation(int p, int q){
                     }
                     break;
 
-                case 3 :
+                case 3 :// porte S
                     if (current_cell->i < p-1){//on verifie que l'on est pas du coté South
                         if (!perfect_laby->tab[current_cell->i+1][current_cell->j].etat){
                             perfect_laby->tab[current_cell->i][current_cell->j].S = true;
@@ -256,7 +258,7 @@ laby * My_Creation(int p, int q){
                     }
                     break;
 
-                case 4 :
+                case 4 :// porte W
                     if (current_cell->j > 0){//on verifie que l'on est pas du coté West
                         if (!perfect_laby->tab[current_cell->i][current_cell->j-1].etat){
                             perfect_laby->tab[current_cell->i][current_cell->j].W = true;
@@ -280,10 +282,6 @@ laby * My_Creation(int p, int q){
     }
     return perfect_laby;
 }
-
-//____________________________________V______________________________________//
-
-
 
 //____________________________________VI______________________________________//
 
@@ -338,6 +336,7 @@ bool adjacent_accessible (laby &L, couple *C){ // renvoie false si toutes les ca
     return false;
 }
 
+//____________________________________V______________________________________//
 
 pile *explorer(laby & L){
     clear();
@@ -357,6 +356,10 @@ pile *explorer(laby & L){
     int porte;
     bool found = false; //indique si la case accessible a été trouvé
     while (c->i != L.p-1 || c->j != L.q-1){
+        usleep(100000);
+        refresh();
+        Show_Lab(L);
+
         if(adjacent_accessible(L,c)){ // on vérifie d'abord s'il y a une case accessible autour
             depiler(*chemin);
             taille_pile--;
@@ -370,11 +373,6 @@ pile *explorer(laby & L){
                                     taille_pile++;
                                     L.tab[c->i-1][c->j].marq = true;
                                     Mark_Case(c->i,c->j);
-                                    Show_Lab(L);
-                                    switch (LireCommande()) { // permet de detecter quand le joueur appui sur nimporte quelle touche
-                                        default :
-                                            break;
-                                    }
                                     c->i--;
                                     empiler(*chemin,*c);
                                     taille_pile++;
@@ -390,11 +388,6 @@ pile *explorer(laby & L){
                                     taille_pile++;
                                     L.tab[c->i][c->j+1].marq = true;
                                     Mark_Case(c->i,c->j);
-                                    Show_Lab(L);
-                                    switch (LireCommande()) { // permet de detecter quand le joueur appui sur nimporte quelle touche
-                                        default :
-                                            break;
-                                    }
                                     c->j++;
                                     empiler(*chemin,*c);
                                     taille_pile++;
@@ -410,11 +403,6 @@ pile *explorer(laby & L){
                                     taille_pile++;
                                     L.tab[c->i + 1][c->j].marq = true;
                                     Mark_Case(c->i,c->j);
-                                    Show_Lab(L);
-                                    switch (LireCommande()) { // permet de detecter quand le joueur appui sur nimporte quelle touche
-                                        default :
-                                            break;
-                                    }
                                     c->i++;
                                     empiler(*chemin,*c);
                                     taille_pile++;
@@ -430,11 +418,6 @@ pile *explorer(laby & L){
                                     taille_pile++;
                                     L.tab[c->i][c->j-1].marq = true;
                                     Mark_Case(c->i,c->j);
-                                    Show_Lab(L);
-                                    switch (LireCommande()) { // permet de detecter quand le joueur appui sur nimporte quelle touche
-                                        default :
-                                            break;
-                                    }
                                     c->j--;
                                     empiler(*chemin,*c);
                                     taille_pile++;
@@ -452,11 +435,6 @@ pile *explorer(laby & L){
         } else {
             *c=depiler(*chemin);
             UMark_Case(c->i,c->j);
-            Show_Lab(L);
-            switch (LireCommande()) { // permet de detecter quand le joueur appui sur nimporte quelle touche
-                default :
-                    break;
-            }
             taille_pile--;
         }
     }
@@ -474,7 +452,8 @@ void jeu (){
     laby *L1= My_Creation(p,q);
     InitCurses();
     Show_Lab(*L1);
-    deplacement(*L1, &abandon);
+    mvprintw(p*2+1, 0, "pour abandonner appuyez sur F1");
+    deplacement(*L1, abandon);
     if (abandon){
         clear();
         mvprintw(0, 0, "Vous avez abandonné : Appuyez sur une touche pour voir la solution du labyrinthe");
